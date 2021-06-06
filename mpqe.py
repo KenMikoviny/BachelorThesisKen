@@ -32,7 +32,7 @@ num_nodes = 16
 num_relations = 6
 
 
-### Utility functions ###
+### Utility functions ###########################
 
 ## To get uniform embedding weights of custom range
 def uniform_embeddings(num_nodes, emb_dim, device=None):
@@ -47,7 +47,7 @@ def uniform_embeddings(num_nodes, emb_dim, device=None):
     return node_embeddings
 
 
-# Gets edge index and edge types from a query description
+# Gets edge index and edge types a from a query description
 def process_query(query_description):
     query_copy = copy.deepcopy(query_description)
     edge_type = []
@@ -58,7 +58,7 @@ def process_query(query_description):
     edge_index = query_copy
     return edge_index, edge_type
 
-    
+#################################################   
 
 
 
@@ -74,13 +74,11 @@ node_embeddings = uniform_embeddings(num_nodes, embedding_dim)
 
 
 
-#### Processing query descriptions into processed queries #####
+#### Processing query descriptions into processed queries (Query class) #####
 queries = []
 for query in query_descriptions:
     edge_index, edge_type = process_query(query.edges)
     queries.append(Query(edge_index, edge_type, query.target))
-
-print(queries)
 
 
 # Initializing query batch ids for pooling, i am not sure how this should look like, see "Questions" 
@@ -92,12 +90,9 @@ for i in range(len(queries)):
 
 
 # Neural network with 2 RGCNConv layers, input = node embeddings
-class Net(torch.nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        
-        self.embedding_dim = embedding_dim
-        self.node_embeddings = []
+class Node_Embedding_RGCN(torch.nn.Module):
+    def __init__(self, embedding_dim, num_relations, num_bases):
+        super(Node_Embedding_RGCN, self).__init__()
         
         self.conv1 = RGCNConv(in_channels=embedding_dim, out_channels=embedding_dim, num_relations=num_relations,
                               num_bases=num_bases)
@@ -109,19 +104,33 @@ class Net(torch.nn.Module):
         x = F.relu(self.conv1(embedding, edge_index, edge_type))
         x = self.conv2(x, edge_index, edge_type)   
         
-        # For producing embeddings
-        # Here we save node embeddings for all nodes = shape [23606,2]
-        self.node_embeddings = x
-        
-        # Pooling using torch_scatter sum, this should be done outside the model? maybe?
-        if(batch_ids is not None):
-            self.node_embeddings = scatter(x, batch_ids, dim=0, reduce="sum")
-
+        # We output embeddings for all nodes = shape [23606,2]
         return x
 
 
+# 2 Networks, first one outputs node embeddings for all nodes in the graph and the second one should only consider queries?
+class Complete_model(torch.nn.Module):
+    def __init__(self, embedding_dim, num_relations, num_bases):
+        super(Complete_model, self).__init__()
+        
+        self.rgcn = Node_Embedding_RGCN(embedding_dim, num_relations, num_bases)
+
+        #This should be a different, modified version of the Node_Embedding_RGCN = e.g. Query_Embedding_RGCN
+        self.mpqe = Node_Embedding_RGCN(embedding_dim, num_relations, num_bases)
+        
+
+    def forward(self, embedding, edge_index, edge_type, batch_ids = None):
+
+        node_embeddings = self.rgcn(embedding, edge_index, edge_type)   
+        
+        # Obtain query embedding using self.mpqe?
+        query_embedding = []
+
+        return query_embedding
+
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = Net()
+model = Complete_model(embedding_dim, num_relations, num_bases)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=0.0005)
 
 
@@ -132,7 +141,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=0.0005)
 """
 Training pseudocode:
 
-1. We get updated embedding by passing the edge_index, edge_type and embeddings of the entire graph (not just queries) to a RGCNConv()
+1. We get updated embedding by passing the edge_index, edge_type and embeddings of the entire graph (not the queries) to a RGCNConv()
 
 
 2. We get the embedding of the 3 queries of shape (3,embedding_dim) by looking at the updated embedding and query_batch_ids 
@@ -152,13 +161,19 @@ Im not sure how this 1 dimensional array would look like for the graph i have cr
 
 in 4. We have 2 separate networks with 2 sets of weights? First network holds weights for all nodes and second network holds weights for queries?
 
-Do we have 2 separate RGCN networks? 
+Do we have 2 separate RGCN networks? ie 1 model consisting of a) Node_Embedding_RGCN (for step 1) and b) Query_Embedding_RGCN
 
 Can a node be a part of multiple queries? if yes how do we index them for pooling.
 
 When pooling nodes for a query, do we also pool in the variable/target representation with the node embeddings of the query?
 i.e. for query 1 we pool embedding of node 0 + embedding of variable + embedding of target
 for query 2 we pool embedding of node 5 + embedding of variable + embedding of target
+
+-I'm unsure how exactly do we utilize the "variable" and "target" variables that we add to the total node embeddings
+
+-It does not make sense to me how come we only have 1 variable and 1 target embedding even though we have 3 queries with different variables and targets
+
+Do we do some kind of a loop where we go trough all queries in my "queries" so this way we always have only 1 variable and 1 target?
 """
 
 ## Ignore this for now:
@@ -166,6 +181,8 @@ for query 2 we pool embedding of node 5 + embedding of variable + embedding of t
 #     model.train()
 #     optimizer.zero_grad()
 #     out = model(node_embeddings, data.edge_index, data.edge_type, batch_ids)
+
+      # We calculate loss by comparing query embedding to the embedding of the target
 #     loss = F.nll_loss(out[data.train_idx], node_embeddings[tagets])
 #     loss.backward()
 #     optimizer.step()
@@ -189,3 +206,7 @@ for query 2 we pool embedding of node 5 + embedding of variable + embedding of t
     
 # print(model.node_embeddings)
 # print(model.node_embeddings.shape)
+
+# # Pooling using torch_scatter sum, this should be done outside the model? maybe?
+#         if(batch_ids is not None):
+#             self.node_embeddings = scatter(x, batch_ids, dim=0, reduce="sum")
