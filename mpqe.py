@@ -80,7 +80,6 @@ for query in query_descriptions:
     edge_index, edge_type = process_query(query.edges)
     queries.append(Query(edge_index, edge_type, query.target))
 
-print(queries[2].target)
 print(queries)
 
 # Initializing batch_ids randomly for testing:
