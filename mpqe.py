@@ -120,7 +120,10 @@ class Complete_model(torch.nn.Module):
         
 
     def forward(self, embedding, edge_index, edge_type, batch_ids = None):
-
+        
+        # TODO: save these embeddings so we can pass the updated version every time?
+        # i.e. we only use the randomly initialized embeddings from uniform_embeddings() during the first pass
+        # Afterwards we keep passing the updated embeddings obtained from the Node_Embedding_RGCN
         node_embeddings = self.rgcn(embedding, edge_index, edge_type)   
         
         # Obtain query embedding using self.mpqe?
@@ -174,6 +177,8 @@ for query 2 we pool embedding of node 5 + embedding of variable + embedding of t
 -It does not make sense to me how come we only have 1 variable and 1 target embedding even though we have 3 queries with different variables and targets
 
 Do we do some kind of a loop where we go trough all queries in my "queries" so this way we always have only 1 variable and 1 target?
+
+-one more question is in the forward() method above marked with "TODO" 
 """
 
 ## Ignore this for now:
