@@ -69,12 +69,12 @@ num_bases = 4
 # Create initial embedding = 2D tensor of shape (num_nodes + 2,embedding_dim) 
 # "+2" representing variables and target
 # final shape = (18, 4) with index 16 representing variables & index 17 representing target
-untrained_embedding = uniform_embeddings(num_nodes, embedding_dim)
+node_embeddings = uniform_embeddings(num_nodes, embedding_dim)
 
 
 
 
-# Processing query descriptions into processed queries
+#### Processing query descriptions into processed queries #####
 queries = []
 for query in query_descriptions:
     edge_index, edge_type = process_query(query.edges)
@@ -82,8 +82,13 @@ for query in query_descriptions:
 
 print(queries)
 
-# Initializing batch_ids randomly for testing:
-batch_ids = torch.from_numpy(np.random.randint(4, size=num_nodes))
+
+# Initializing query batch ids for pooling, i am not sure how this should look like, see "Questions" 
+query_batch_ids = []
+
+for i in range(len(queries)):
+    for node in query[i]:
+        print("a")
 
 
 # Neural network with 2 RGCNConv layers, input = node embeddings
@@ -108,14 +113,10 @@ class Net(torch.nn.Module):
         # Here we save node embeddings for all nodes = shape [23606,2]
         self.node_embeddings = x
         
-        # Pooling using torch_scatter sum
+        # Pooling using torch_scatter sum, this should be done outside the model? maybe?
         if(batch_ids is not None):
             self.node_embeddings = scatter(x, batch_ids, dim=0, reduce="sum")
-        
-        # For classification
-        x = F.log_softmax(x, dim=1)
-        
-        
+
         return x
 
 
@@ -126,11 +127,38 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=0.0005)
 
 
 
+
+
+"""
+Training pseudocode:
+
+1. We get updated embedding by passing the edge_index, edge_type and embeddings of the entire graph (not just queries) to a RGCNConv()
+
+
+2. We get the embedding of the 3 queries of shape (3,embedding_dim) by looking at the updated embedding and query_batch_ids 
+   ( this is essentially pooling by utilizing batch ids to select which nodes to sum in the updated embedding from step 1)
+   --> this is done in the training loop? outside the model
+
+3. ? 
+
+
+4. We update the weights based on the loss calculated from comparing the obtained query_embeddings to the embeddings of their targets
+
+
+
+Questions:
+How to we obtain query_batch_ids, is this initialized before any training is done and then kept the same during the entire process? 
+Im not sure how this 1 dimensional array would look like for the graph i have created ( 16 nodes total)
+
+in 4. We have 2 separate networks with 2 sets of weights? First network holds weights for all nodes and second network holds weights for queries?
+"""
+
+## Ignore this for now:
 # def train():
 #     model.train()
 #     optimizer.zero_grad()
-#     out = model(untrained_embedding, data.edge_index, data.edge_type, batch_ids)
-#     loss = F.nll_loss(out[data.train_idx], data.train_y)
+#     out = model(node_embeddings, data.edge_index, data.edge_type, batch_ids)
+#     loss = F.nll_loss(out[data.train_idx], node_embeddings[tagets])
 #     loss.backward()
 #     optimizer.step()
 #     return loss.item(), out
@@ -139,7 +167,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=0.0005)
 # @torch.no_grad()
 # def test():
 #     model.eval()
-#     pred = model(untrained_embedding, data.edge_index, data.edge_type, batch_ids).argmax(dim=-1)
+#     pred = model(node_embeddings, data.edge_index, data.edge_type, batch_ids).argmax(dim=-1)
 #     train_acc = pred[data.train_idx].eq(data.train_y).to(torch.float).mean()
 #     test_acc = pred[data.test_idx].eq(data.test_y).to(torch.float).mean()
 #     return train_acc.item(), test_acc.item()
