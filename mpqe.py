@@ -151,6 +151,8 @@ How to we obtain query_batch_ids, is this initialized before any training is don
 Im not sure how this 1 dimensional array would look like for the graph i have created ( 16 nodes total)
 
 in 4. We have 2 separate networks with 2 sets of weights? First network holds weights for all nodes and second network holds weights for queries?
+
+Do we have 2 separate RGCN networks? 
 """
 
 ## Ignore this for now:
