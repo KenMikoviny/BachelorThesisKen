@@ -153,6 +153,12 @@ Im not sure how this 1 dimensional array would look like for the graph i have cr
 in 4. We have 2 separate networks with 2 sets of weights? First network holds weights for all nodes and second network holds weights for queries?
 
 Do we have 2 separate RGCN networks? 
+
+Can a node be a part of multiple queries? if yes how do we index them for pooling.
+
+When pooling nodes for a query, do we also pool in the variable/target representation with the node embeddings of the query?
+i.e. for query 1 we pool embedding of node 0 + embedding of variable + embedding of target
+for query 2 we pool embedding of node 5 + embedding of variable + embedding of target
 """
 
 ## Ignore this for now:
