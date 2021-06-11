@@ -79,7 +79,7 @@ class QueryEmbeddingModel(torch.nn.Module):
         # Run the embeddings through RGCNConv
         query_node_embeddings = self.rgcn(query_node_embeddings, edge_index, edge_type)   
 
-        #print("\n \n Query embeddings before pooling: \n",  query_node_embeddings)
+        print("\n \n Query embeddings before pooling: \n",  query_node_embeddings)
         # Pooling the nodes in each query by summing 
         query_embeddings = scatter(query_node_embeddings, batch_ids, dim=0, reduce="sum")
         print("\n \n Pooled query embeddings at the end of forward(): \n", query_embeddings)
@@ -137,8 +137,9 @@ def train():
     loss.backward()
     optimizer.step()
     # return loss.item(), out
-    return out, loss
+    return loss
 
+#Note: If we run train for multiple epochs the loss gets minimized so everything should be working for now
 train()
 
 # @torch.no_grad()
@@ -149,16 +150,10 @@ train()
 #     test_acc = pred[data.test_idx].eq(data.test_y).to(torch.float).mean()
 #     return train_acc.item(), test_acc.item()
 
-# # Train for 50 epochs to get trained node embedding of size (data.num_nodes, embedding_dim)
-# for epoch in range(1, 10):
-#     loss, embedding = train()
-#     train_acc, test_acc = test()
-#     print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, Train: {train_acc:.4f} '
-#           f'Test: {test_acc:.4f}')
+# Train for 50 epochs to get trained node embedding of size (data.num_nodes, embedding_dim)
+# for epoch in range(1, 51):
+#     loss = train()
+#   train_acc, test_acc = test()
+#   print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, Train: {train_acc:.4f} '
+#         f'Test: {test_acc:.4f}')
     
-# print(model.node_embeddings)
-# print(model.node_embeddings.shape)
-
-# # Pooling using torch_scatter sum, this should be done outside the model? maybe?
-#         if(batch_ids is not None):
-#             self.node_embeddings = scatter(x, batch_ids, dim=0, reduce="sum")
