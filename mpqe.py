@@ -37,9 +37,9 @@ num_relations = 6
 
 ## To get uniform embedding weights of custom range
 def uniform_embeddings(num_nodes, emb_dim, device=None):
-    uniform_distribution = Uniform(torch.tensor([-100.0]), torch.tensor([100.0]))
+    uniform_distribution = Uniform(torch.tensor([-20.0]), torch.tensor([20.0]))
 
-    # Generate random center between -100 and 100
+    # Generate random center between -20 and 20
     node_embeddings = uniform_distribution.sample((num_nodes, int(emb_dim))).squeeze(-1)
     if device:
         node_embeddings = node_embeddings.to(device)
@@ -80,7 +80,6 @@ class QueryEmbeddingModel(torch.nn.Module):
         # Run the embeddings through RGCNConv
         query_node_embeddings = self.rgcn(query_node_embeddings, edge_index, edge_type)   
 
-        print("\n \n Query embeddings before pooling: \n",  query_node_embeddings)
         # Pooling the nodes in each query by summing 
         query_embeddings = scatter(query_node_embeddings, batch_ids, dim=0, reduce="sum")
         print("\n \n Pooled query embeddings at the end of forward(): \n", query_embeddings)
@@ -98,16 +97,8 @@ model_parameters.append(node_embeddings)
 optimizer = torch.optim.Adam(model_parameters, lr=0.01, weight_decay=0.0005)
 score_function = nn.CosineSimilarity(dim=0)
 
-
-# query_node_embeddings = select_embeddings_by_index(query_batch.global_entitiy_ids)
-# print("....................\n selected embeddings are: \n")
-# print(query_node_embeddings)
-# print(query_node_embeddings.shape)
-
-# Ignore this for now:
 def train():
-    print(model.parameters())
-    print(query_batch.global_entitiy_ids)
+
     #For each batch of queries do:
     query_node_embeddings = select_embeddings_by_index(query_batch.global_entitiy_ids)
 
@@ -121,10 +112,10 @@ def train():
     model.train()
     optimizer.zero_grad()
     print("\n\n Input to the forward() function is:")
-    print(query_node_embeddings)
-    print(remapped_edge_indices)
-    print(query_batch.edge_type)
-    print(query_batch.batch_ids)
+    print("query_node_embeddings:\n",query_node_embeddings)
+    print("remmaped_edge_indices:\n",remapped_edge_indices)
+    print("query_batch.edge_type:\n",query_batch.edge_type)
+    print("query_batch.batch_ids:\n",query_batch.batch_ids)
     out = model(query_node_embeddings, remapped_edge_indices, query_batch.edge_type, query_batch.batch_ids)
 
 
@@ -138,8 +129,7 @@ def train():
     # Not sure what operation should be here, using mean() for now
     loss = loss.mean()
 
-    
-    print("loss: ", loss)
+    print("\n\nloss: ", loss)
     loss.backward()
     optimizer.step()
     # return loss.item(), out
@@ -149,12 +139,12 @@ def train():
 train()
 
 
-#Note: Alternatively uncomment the block below to see:
+# Uncomment the block below to see:
 # if we run train for multiple epochs the loss gets minimized so everything should be working for now
 
 
-# Train for 50 epochs to get trained node embedding of size (data.num_nodes, embedding_dim)
-# for epoch in range(1, 51):
+#Train for 100 epochs to get trained node embedding of size (data.num_nodes, embedding_dim)
+# for epoch in range(1, 101):
 #     loss = train()
 # print("\n\nnode_embeddings after training: ", node_embeddings)
 # print("initial_node_embeddings: ", initial_node_embeddings)
