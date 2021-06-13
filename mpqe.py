@@ -66,6 +66,7 @@ num_bases = 4
 # "+2" representing variables and target
 # final shape = (18, 4) with index 16 representing variables & index 17 representing target
 node_embeddings = uniform_embeddings(num_nodes, embedding_dim)
+initial_node_embeddings = copy.deepcopy(node_embeddings)
 
 class QueryEmbeddingModel(torch.nn.Module):
     def __init__(self, embedding_dim, num_relations, num_bases):
@@ -90,7 +91,11 @@ class QueryEmbeddingModel(torch.nn.Module):
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = QueryEmbeddingModel(embedding_dim, num_relations, num_bases)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=0.0005)
+
+# Adding node embeddings to model parameters so weights can get trained
+model_parameters = list(model.parameters())
+model_parameters.append(node_embeddings)
+optimizer = torch.optim.Adam(model_parameters, lr=0.01, weight_decay=0.0005)
 score_function = nn.CosineSimilarity(dim=0)
 
 
@@ -101,6 +106,7 @@ score_function = nn.CosineSimilarity(dim=0)
 
 # Ignore this for now:
 def train():
+    print(model.parameters())
     print(query_batch.global_entitiy_ids)
     #For each batch of queries do:
     query_node_embeddings = select_embeddings_by_index(query_batch.global_entitiy_ids)
@@ -139,9 +145,25 @@ def train():
     # return loss.item(), out
     return loss
 
-#Note: If we run train for multiple epochs the loss gets minimized so everything should be working for now
+
 train()
 
+
+#Note: Alternatively uncomment the block below to see:
+# if we run train for multiple epochs the loss gets minimized so everything should be working for now
+
+
+# Train for 50 epochs to get trained node embedding of size (data.num_nodes, embedding_dim)
+# for epoch in range(1, 51):
+#     loss = train()
+# print("\n\nnode_embeddings after training: ", node_embeddings)
+# print("initial_node_embeddings: ", initial_node_embeddings)
+
+
+
+
+
+########################### Ignore below:  #####################################
 # @torch.no_grad()
 # def test():
 #     model.eval()
@@ -156,4 +178,5 @@ train()
 #   train_acc, test_acc = test()
 #   print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, Train: {train_acc:.4f} '
 #         f'Test: {test_acc:.4f}')
-    
+# print("\n\nnode_embeddings after training: ", node_embeddings)
+# print("initial_node_embeddings: ", initial_node_embeddings)
