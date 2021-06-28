@@ -1,0 +1,11 @@
+http://purl.org/collections/nl/am/relatedObjectReference	0
+http://purl.org/collections/nl/am/partOfReference	1
+http://www.europeana.eu/schemas/edm/object	2
+http://www.openarchives.org/ore/terms/aggregates	3
+http://purl.org/collections/nl/am/partsReference	4
+http://www.europeana.eu/schemas/edm/aggregatedCHO	5
+http://purl.org/collections/nl/am/associationPerson	6
+http://www.openarchives.org/ore/terms/proxyFor	7
+http://www.openarchives.org/ore/terms/proxyIn	8
+http://purl.org/collections/nl/am/contentPersonName	9
+http://www.europeana.eu/schemas/edm/landingPage	10
