@@ -2,6 +2,9 @@
 import os
 import torch
 import torch.nn as nn
+import pickle
+import torch
+import copy
 
 from torch.distributions.uniform import Uniform
 from torch.distributions.normal import Normal
@@ -61,5 +64,43 @@ def initialize_embeddings(num_nodes, emb_dim) -> nn.Parameter:
     nn.init.xavier_normal_(embeddings.data)
     return embeddings
 
+# TODO maybe find better name for this
+def transfer_model_parameters(
+    from_model: torch.nn.Module, 
+    to_model: torch.nn.Module, 
+) -> torch.nn.Module:
+
+    # Path used to save model that has been trained on type embeddings
+    save_path = "/mnt/c/Users/Sorys/Desktop/Thesis/BachelorThesisKen/mpqe/data/saved_models/state_dict_type_model.pt"
+
+    # Initialize empty node embeddings
+    entity_node_embeddings = torch.empty(to_model.node_embeddings.shape)
+
+    # Save trained model except node embeddings
+    model_dict = copy.deepcopy(from_model.state_dict())
+    del model_dict['node_embeddings']
+    torch.save(model_dict,save_path)
+
+    # Load saved model params 
+    pretrained_dict = torch.load(save_path)
+
+    trained_type_embeddings = copy.deepcopy(from_model.node_embeddings)
+
+    # Fill entity_node_embeddings with pretrained ones according to entity types
+    # shape goes from [num_unique_classes + 2, emb_dim] -> [num_entities + 2, emb_dim]
+    for i in range(len(from_model.entity_type_ids)):
+        entity_node_embeddings[i] = trained_type_embeddings[from_model.entity_type_ids[i]]
+
+    # Add the entity_node_embeddings to the dictionary before loading the weights
+    pretrained_dict['node_embeddings'] = entity_node_embeddings
+    to_model.load_state_dict(pretrained_dict)
+
+def save_obj(obj, name ):
+    with open('/mnt/c/Users/Sorys/Desktop/Thesis/BachelorThesisKen/mpqe/data/saved_data/'+ name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name ):
+    with open('/mnt/c/Users/Sorys/Desktop/Thesis/BachelorThesisKen/mpqe/data/saved_data/' + name + '.pkl', 'rb') as f:
+        return pickle.load(f)
 
 #####################################################################################  

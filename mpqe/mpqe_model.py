@@ -30,7 +30,8 @@ class mpqe(torch.nn.Module):
         # Run the embeddings through RGCNConv
         query_node_embeddings = self.rgcn(selected_node_embeddings, edge_index, edge_type) 
         query_node_embeddings = self.rgcn2(query_node_embeddings, edge_index, edge_type)
-
+        
         # Pooling the nodes in each query by summing 
         query_embeddings = scatter(query_node_embeddings, batch_ids, dim=0, reduce="sum")
+
         return query_embeddings

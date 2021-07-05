@@ -1,6 +1,24 @@
 """
 For testing on a single batch, put in run_model.py 
 """
+from utility_methods import load_obj
+import pprint
+
+
+#training_results = load_obj("training_results")
+transfered_entity_results = load_obj("transfered_entity_results_dict")
+#pprint.pprint(training_results)
+
+#import json
+#print(json.dumps(training_results, indent=4, sort_keys=True))
+
+#print("Loss during first epoch: \n", training_results[0])
+
+
+# print("Transfered entity model loss during training: \n")
+# pprint.pprint(transfered_entity_results)
+
+
 
 # test_batch = next(iter(loaders["train"]))
 # test_edge_index = test_batch.edge_index.detach().clone()

@@ -27,10 +27,13 @@ def evaluate(
             # Compute pair-wise scores between individual queries and all other nodes
             scores = similarity_function(out, model_instance.node_embeddings)
 
+            # Filter duplicate targets
+            targets = torch.unique(batch.targets, dim=1)
+
             # Compute loss based on scores
-            loss = loss_function(scores, batch.targets)
+            loss = loss_function(scores, targets)
             val_loss += loss * scores.shape[0]
-            evaluator.process_scores_(scores=scores, targets=batch.targets)
+            evaluator.process_scores_(scores=scores, targets=targets)
         
         return dict(
             loss=val_loss.item() / len(data_loader),
