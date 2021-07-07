@@ -109,6 +109,7 @@ def train(
             **train_evaluator.finalize(),
         )
 
+# Training on type embeddings and evaluating on entities each epoch 
 def train_and_evaluate_on_entities(
     epochs: int,
     data_loader: torch.utils.data.DataLoader[QueryGraphBatch],
