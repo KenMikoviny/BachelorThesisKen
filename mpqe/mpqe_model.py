@@ -4,6 +4,7 @@ from torch_scatter import scatter
 
 from utility_methods import initialize_embeddings
 
+
 class mpqe(torch.nn.Module):
     def __init__(self, embedding_dim, num_relations, num_nodes, num_bases, entity_type_ids=None):
         super(mpqe, self).__init__()

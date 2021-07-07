@@ -64,6 +64,14 @@ def initialize_embeddings(num_nodes, emb_dim) -> nn.Parameter:
     nn.init.xavier_normal_(embeddings.data)
     return embeddings
 
+def save_obj(obj, name ):
+    with open('/mnt/c/Users/Sorys/OneDrive/VU am/Thesis/BachelorThesisKen/mpqe/data/saved_data/'+ name + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name ):
+    with open('/mnt/c/Users/Sorys/OneDrive/VU am/Thesis/BachelorThesisKen/mpqe/data/saved_data/' + name + '.pkl', 'rb') as f:
+        return pickle.load(f)
+
 # TODO maybe find better name for this
 def transfer_model_parameters(
     from_model: torch.nn.Module, 
@@ -94,13 +102,4 @@ def transfer_model_parameters(
     # Add the entity_node_embeddings to the dictionary before loading the weights
     pretrained_dict['node_embeddings'] = entity_node_embeddings
     to_model.load_state_dict(pretrained_dict)
-
-def save_obj(obj, name ):
-    with open('/mnt/c/Users/Sorys/OneDrive/VU am/Thesis/BachelorThesisKen/mpqe/data/saved_data/'+ name + '.pkl', 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-
-def load_obj(name ):
-    with open('/mnt/c/Users/Sorys/OneDrive/VU am/Thesis/BachelorThesisKen/mpqe/data/saved_data/' + name + '.pkl', 'rb') as f:
-        return pickle.load(f)
-
 #####################################################################################  

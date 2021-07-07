@@ -25,7 +25,6 @@ def train(
 
     # If the model trains on types instead of entities:
     if train_on_types:
-
         #For each batch of queries do:
         for batch in data_loader:
             # Zero out the gradients
@@ -63,27 +62,6 @@ def train(
             # Filter duplicate targets
             type_targets = torch.unique(type_targets, dim=1)
 
-            # print("\noriginal entities tensor:\n", batch.entity_ids)
-            # print("\nremapped entity tensor:\n", type_entity_ids)
-
-
-            #print("\nTEEEEEEEST: \n:", torch.unique(type_targets, dim=1))
-            # print("targets",batch.targets)
-            # print("modified targets", type_targets)
-            # print(batch.relation_ids[batch.edge_type])
-            # print("sum of scores", scores.sum())
-            # batch_id, entity_id = type_targets
-            # m = (-scores).clamp_min(0)
-
-            # print("\nscores[batch_id, entity_id].sum() = ", scores[batch_id, entity_id].sum())
-            # print("\nm.sum() = ", m.sum())
-            # # print("torch.log(torch.exp(-m) ", torch.log(torch.exp(-m)))
-            # # print("torch.exp(-scores - m) ", torch.exp(-scores - m))
-            # print("\ntorch.log(torch.exp(-m) + torch.exp(-scores - m)).sum() =", torch.log(torch.exp(-m) + torch.exp(-scores - m)).sum())
-            # print()
-            
-            #loss = scores.sum() - scores[batch_id, entity_id].sum() + m.sum() + torch.log(torch.exp(-m) + torch.exp(-scores - m)).sum()
-
             # Compute loss based on scores
             loss = loss_function(scores, type_targets)
             #print("\nloss:\n", loss)
@@ -116,22 +94,6 @@ def train(
             # Filter duplicate targets
             targets = torch.unique(batch.targets, dim=1)
 
-            # print("targets",batch.targets)
-            # print(batch.relation_ids[batch.edge_type])
-
-            # print(scores[:10])
-            # print("sum of scores", scores.sum())
-            # batch_id, entity_id = batch.targets
-            # m = (-scores).clamp_min(0)
-
-            # print("\nscores[batch_id, entity_id].sum() = ", scores[batch_id, entity_id].sum())
-            # print("\nm.sum() = ", m.sum())
-            # # print("torch.log(torch.exp(-m) ", torch.log(torch.exp(-m)))
-            # # print("torch.exp(-scores - m) ", torch.exp(-scores - m))
-            # print("\ntorch.log(torch.exp(-m) + torch.exp(-scores - m)).sum() =", torch.log(torch.exp(-m) + torch.exp(-scores - m)).sum())
-            # print()
-
-            #loss = scores.sum() - scores[batch_id, entity_id].sum() + m.sum() + torch.log(torch.exp(-m) + torch.exp(-scores - m)).sum()
             # Compute loss based on scores
             loss = loss_function(scores, targets)
 
