@@ -39,9 +39,9 @@ from evaluation import evaluate
 dataloaders = load_obj("dataloaders")
 loaders = dataloaders[0]
 
-aifb_entity_id_path = "/mnt/c/Users/Sorys/Desktop/Thesis/BachelorThesisKen/mpqe/data/triple_split_AIFB/entity_id_typing.txt"
-am_entity_id_path = "/mnt/c/Users/Sorys/Desktop/Thesis/BachelorThesisKen/mpqe/data/triple_split_AM/entity_id_typing.txt"
-mutag_entity_id_path = "/mnt/c/Users/Sorys/Desktop/Thesis/BachelorThesisKen/mpqe/data/triple_split_MUTAG/entity_id_typing.txt"
+aifb_entity_id_path = "/mnt/c/Users/Sorys/OneDrive/VU am/Thesis/BachelorThesisKen/mpqe/data/triple_split_AIFB/entity_id_typing.txt"
+am_entity_id_path = "/mnt/c/Users/Sorys/OneDrive/VU am/Thesis/BachelorThesisKen/mpqe/data/triple_split_AM/entity_id_typing.txt"
+mutag_entity_id_path = "/mnt/c/Users/Sorys/OneDrive/VU am/Thesis/BachelorThesisKen/mpqe/data/triple_split_MUTAG/entity_id_typing.txt"
 
 
 # Get list of entity type id's by converting the string representation to an int, order corresponds to global ids
@@ -51,13 +51,15 @@ entity_type_ids = get_entity_type_ids(aifb_entity_id_path)
 #############################################################################
 
 ############################## Model parameters #############################
+
 # For AIFB:
 # 2601 total nodes (from entoid)
 # 19 total relations (reltoid)
-num_nodes = mapping.get_entity_mapper().highest_entity_index + 3
-num_relations = mapping.get_relation_mapper().get_largest_forward_relation_id() - 2
+num_nodes = mapping.get_entity_mapper().highest_entity_index + 3 
+num_relations = mapping.get_relation_mapper().get_largest_forward_relation_id() - 2 
 
-embedding_dim = 128
+print("num nodes and realtions:", num_nodes, num_relations)
+embedding_dim = 16
 num_bases = None
 learning_rate = 0.0001
 
@@ -77,39 +79,40 @@ loss_function = loss.BCEQueryEmbeddingLoss() # from mphrqe
 model_instance = mpqe(embedding_dim, num_relations, num_nodes, num_bases)
 optimizer = torch.optim.Adam(model_instance.parameters(), lr=learning_rate)
 
-#Training
-training_results = train_for_epochs(
-    epochs=training_epochs,
-    data_loader=loaders["train"],
-    model_instance=model_instance,
-    evaluation_model_instance=None,
-    loss_function=loss_function,
-    similarity_function=similarity_function,
-    optimizer_instance=optimizer,
-    )
+# print("Starting training")
+# #Training
+# training_results = train_for_epochs(
+#     epochs=training_epochs,
+#     data_loader=loaders["train"],
+#     model_instance=model_instance,
+#     evaluation_model_instance=None,
+#     loss_function=loss_function,
+#     similarity_function=similarity_function,
+#     optimizer_instance=optimizer,
+#     )
 
-# Evaluation
-for loader in loaders:
-    if loader == "train":
-        continue
+# # Evaluation
+# for loader in loaders:
+#     if loader == "train":
+#         continue
 
-    results = evaluate(
-    data_loader=loaders[loader],
-    model_instance=model_instance,
-    loss_function=loss_function,
-    similarity_function=similarity_function,
-    )
+#     results = evaluate(
+#     data_loader=loaders[loader],
+#     model_instance=model_instance,
+#     loss_function=loss_function,
+#     similarity_function=similarity_function,
+#     )
 
-    if loader == "validation":
-        save_obj(results, "validation_results_entities")
-        print("\nValidation set results:\n")
-        pprint.pprint(results)
-    if loader == "test":
-        save_obj(results, "test_results_entities")
-        print("\nTest set results:\n")
-        pprint.pprint(results)
+#     if loader == "validation":
+#         save_obj(results, "validation_results_entities")
+#         print("\nValidation set results:\n")
+#         pprint.pprint(results)
+#     if loader == "test":
+#         save_obj(results, "test_results_entities")
+#         print("\nTest set results:\n")
+#         pprint.pprint(results)
 
-save_obj(training_results, "training_results")
+# save_obj(training_results, "training_results")
 
 #############################################################################
 ################ MPQE Model that trains on type embeddings ##################
@@ -123,7 +126,7 @@ similarity_function = similarity.DotProductSimilarity() # from mphrqe
 loss_function = loss.BCEQueryEmbeddingLoss() # from mphrqe
 
 #############################################################################
-
+print(num_types, num_relations, entity_type_ids.shape)
 type_embedding_model_instance = mpqe(
     embedding_dim=embedding_dim, 
     num_relations=num_relations, 

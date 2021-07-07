@@ -71,7 +71,7 @@ def transfer_model_parameters(
 ) -> torch.nn.Module:
 
     # Path used to save model that has been trained on type embeddings
-    save_path = "/mnt/c/Users/Sorys/Desktop/Thesis/BachelorThesisKen/mpqe/data/saved_models/state_dict_type_model.pt"
+    save_path = "/mnt/c/Users/Sorys/OneDrive/VU am/Thesis/BachelorThesisKen/mpqe/data/saved_models/state_dict_type_model.pt"
 
     # Initialize empty node embeddings
     entity_node_embeddings = torch.empty(to_model.node_embeddings.shape)
@@ -96,11 +96,11 @@ def transfer_model_parameters(
     to_model.load_state_dict(pretrained_dict)
 
 def save_obj(obj, name ):
-    with open('/mnt/c/Users/Sorys/Desktop/Thesis/BachelorThesisKen/mpqe/data/saved_data/'+ name + '.pkl', 'wb') as f:
+    with open('/mnt/c/Users/Sorys/OneDrive/VU am/Thesis/BachelorThesisKen/mpqe/data/saved_data/'+ name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 def load_obj(name ):
-    with open('/mnt/c/Users/Sorys/Desktop/Thesis/BachelorThesisKen/mpqe/data/saved_data/' + name + '.pkl', 'rb') as f:
+    with open('/mnt/c/Users/Sorys/OneDrive/VU am/Thesis/BachelorThesisKen/mpqe/data/saved_data/' + name + '.pkl', 'rb') as f:
         return pickle.load(f)
 
 #####################################################################################  
