@@ -5,9 +5,11 @@ from utility_methods import load_obj
 import pprint
 
 
-#training_results = load_obj("training_results")
+training_results = load_obj("training_results")
 transfered_entity_results = load_obj("transfered_entity_results_dict")
-#pprint.pprint(training_results)
+combined_model_training_results = load_obj("combined_model_training_results")
+# pprint.pprint(transfered_entity_results)
+# pprint.pprint(combined_model_training_results)
 
 #import json
 #print(json.dumps(training_results, indent=4, sort_keys=True))
@@ -61,3 +63,4 @@ transfered_entity_results = load_obj("transfered_entity_results_dict")
 # test_targets = test_batch.targets.detach().clone()
 # for i in range(len(test_targets[1])):
 #     test_targets[1][i] = entity_type_ids[test_targets[1][i]]
+

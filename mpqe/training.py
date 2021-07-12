@@ -1,10 +1,11 @@
 import torch
 import pprint
 import copy
-
-from mphrqe import similarity, evaluation, loss
-from mphrqe.data.loader import QueryGraphBatch
-from mphrqe.data import mapping
+import sys
+sys.path.append("..")
+from BachelorThesisKen.hqe.src.mphrqe import similarity, evaluation, loss
+from BachelorThesisKen.hqe.src.mphrqe.data import mapping
+from BachelorThesisKen.hqe.src.mphrqe.data.loader import QueryGraphBatch
 
 from mpqe_model import mpqe
 from evaluation import evaluate
@@ -18,7 +19,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_on_types:bool,
 ):
-
+    """ A single training loop iteration, handles training on entities as well as training on types """
     model.train()
     train_evaluator = evaluation.RankingMetricAggregator()
     epoch_loss = torch.zeros(size=tuple())
@@ -110,7 +111,7 @@ def train(
         )
 
 # Training on type embeddings and evaluating on entities each epoch 
-def train_and_evaluate_on_entities(
+def train_on_types_and_evaluate_on_entities(
     epochs: int,
     data_loader: torch.utils.data.DataLoader[QueryGraphBatch],
     model_instance: mpqe,
@@ -118,8 +119,18 @@ def train_and_evaluate_on_entities(
     loss_function: loss.QueryEmbeddingLoss,
     similarity_function: similarity.Similarity,
     optimizer_instance: torch.optim.Optimizer,
-    is_type_embeddings_model=False,
 ):
+    """
+    Trains a model instance on types while outputing evaluation loss using an entity model instance
+
+    :param epochs: embeddings to visualize
+    :param data_loader: entity labels for coloring
+    :param model_instance: statistic to plot
+    :param evaluation_model_instance: x axis limit
+    :param loss_function: y axis limit
+    :param similarity_function: statistic to plot
+    :param optimizer_instance: x axis limit
+    """ 
 
     print("Training on type embeddings and evaluating on entity embeddings each epoch")
 
@@ -130,14 +141,11 @@ def train_and_evaluate_on_entities(
 
     target_id = mapping.get_entity_mapper().highest_entity_index + 1
     variable_id = mapping.get_entity_mapper().highest_entity_index + 2
-    type_variable_id = len(torch.unique(model_instance.entity_type_ids)) + 1
-    type_target_id = len(torch.unique(model_instance.entity_type_ids))
+    type_variable_id = len(torch.unique(model_instance.entity_type_ids)) -1 
+    type_target_id = len(torch.unique(model_instance.entity_type_ids)) - 2
 
     results_dict = {}
     entity_results_dict = {}
-
-    # Initialize empty node embeddings
-    entity_node_embeddings = torch.empty(evaluation_model_instance.node_embeddings.shape)
 
     for epoch in range(0, epochs):
         type_loss = train(
@@ -146,7 +154,7 @@ def train_and_evaluate_on_entities(
             loss_function = loss_function,
             similarity_function = similarity_function,
             optimizer = optimizer_instance,
-            train_on_types=is_type_embeddings_model,
+            train_on_types=True
             )
         #print(f'End of epoch: {epoch:03d}')
         results_dict[epoch] = type_loss
@@ -176,14 +184,13 @@ def train_for_epochs(
     loss_function: loss.QueryEmbeddingLoss,
     similarity_function: similarity.Similarity,
     optimizer_instance: torch.optim.Optimizer,
-    is_type_embeddings_model=False,
 ):
     
     results_dict = {}
 
-    # If the model trains on type embeddings + we have a entity evaluation model instance then: (see train_and_evaluate_on_entities())
-    if(is_type_embeddings_model and evaluation_model_instance):
-        results_dict = train_and_evaluate_on_entities(
+    # If the model trains on type embeddings + we have a entity evaluation model instance then: (see train_on_types_and_evaluate_on_entities())
+    if(evaluation_model_instance is not None):
+        results_dict = train_on_types_and_evaluate_on_entities(
             epochs=epochs,
             data_loader=data_loader,
             model_instance=model_instance,
@@ -191,7 +198,6 @@ def train_for_epochs(
             loss_function=loss_function,
             similarity_function=similarity_function,
             optimizer_instance=optimizer_instance,
-            is_type_embeddings_model=is_type_embeddings_model,
         )
 
     else:
@@ -202,7 +208,7 @@ def train_for_epochs(
                 loss_function = loss_function,
                 similarity_function = similarity_function,
                 optimizer = optimizer_instance,
-                train_on_types=is_type_embeddings_model,
+                train_on_types=False
                 )
             results_dict[epoch] = loss
             print(f'Epoch: {epoch:03d}, Loss: {loss["loss"]:.5f}') 
