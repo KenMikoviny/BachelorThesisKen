@@ -3,11 +3,27 @@ For testing on a single batch, put in run_model.py
 """
 from utility_methods import load_obj
 import pprint
+import torch
+
+# training_results = load_obj("training_results")
+# transfered_entity_results = load_obj("transfered_entity_results_dict")
+# combined_model_training_results = load_obj("combined_model_training_results")
 
 
-training_results = load_obj("training_results")
-transfered_entity_results = load_obj("transfered_entity_results_dict")
-combined_model_training_results = load_obj("combined_model_training_results")
+
+
+
+
+
+
+x = torch.tensor([[-0.4991, -0.4132,  0.3150, -0.8814],
+            [-0.4991, -0.4132,  0.3150, -0.8814],
+            [-0.4991, -0.4132,  0.3150, -0.8814],
+            [-0.2471, -0.1896, -0.8033,  0.0767],
+            [-0.2471, -0.1896, -0.8033,  0.0767],
+            [-0.2471, -0.1896, -0.8033,  0.0767]])
+
+print(torch.unique(x, dim=0))
 # pprint.pprint(transfered_entity_results)
 # pprint.pprint(combined_model_training_results)
 

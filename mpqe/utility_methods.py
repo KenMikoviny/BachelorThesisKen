@@ -8,14 +8,6 @@ import torch
 import copy
 import config
 
-# For embedding visualization
-import numpy as np
-import matplotlib.pyplot as plt
-import time
-import seaborn as sns
-from sklearn.manifold import TSNE
-from sklearn.decomposition import PCA
-
 def get_entity_type_ids(file_path):
     """
     Returns a list of entity type ids, order corresponds to global entity id's
@@ -109,56 +101,4 @@ def transfer_model_parameters(
     copied_state['node_embeddings'] = entity_node_embeddings
     to_model.load_state_dict(copied_state) 
     
-def apply_pca_and_tsne(embeddings, target_dimensions):
-    """ Apply pca and tsne dimensionality reduction """ 
-
-    # Set n_components to target dimension or min(number of entities, embedding dimension)
-    components = min(target_dimensions, min(embeddings.shape[0], embeddings.shape[1]))
-    pca = PCA(n_components=components)
-    pca_result = pca.fit_transform(embeddings.detach().numpy())
-    print('Cumulative explained variation for ' + str(components) + ' principal components: {}'.format(np.sum(pca.explained_variance_ratio_)))
-
-    time_start = time.time()
-
-    #remove metric cosine to use euclidean distance instead
-    tsne = TSNE(n_components=2, verbose=0, perplexity=40, n_iter=1000, metric="cosine")
-    tsne_pca_results = tsne.fit_transform(pca_result)
-    print('t-SNE done! Time elapsed: {} seconds'.format(time.time()-time_start))
-    return tsne_pca_results
-
-
-def save_visualization_of_embeddings(embeddings, labels, target_dimensions, file_name):
-    """
-    Visualization referrence: https://towardsdatascience.com/visualising-high-dimensional-datasets-using-pca-and-t-sne-in-python-8ef87e7915b
-    Generates and saves a visualisation of entity embeddings using pca+tsne
-    Generates 2 copies in figures folder, first one with labels and second one without
-
-    :param embeddings: embeddings to visualize
-    :param labels: entity labels for coloring
-    :param target_dimensions: target dimension of pca reduction
-    :param file_name: name of the file
-    """ 
-    
-    tsne_pca_results = apply_pca_and_tsne(embeddings,target_dimensions)
-    fig = plt.figure(figsize=(16,10))
-
-    unique_labels = len(np.unique(labels))
-    sns.scatterplot(
-        x=tsne_pca_results[:,0], y=tsne_pca_results[:,1],
-        hue=labels,
-        palette=sns.color_palette("hls", unique_labels),
-        legend="full",
-        alpha=0.9,
-    )
-    fig.savefig('mpqe/figures/' + str(file_name) + '.png')
-
-    fig_without_labels = plt.figure(figsize=(16,10))
-    sns.scatterplot(
-        x=tsne_pca_results[:,0], y=tsne_pca_results[:,1],
-        hue=labels,
-        palette=sns.color_palette("hls", unique_labels),
-        legend=False,
-        alpha=0.9,
-    )
-    fig_without_labels.savefig('mpqe/figures/' + str(file_name) + '_nolegend' + '.png')
 #####################################################################################  

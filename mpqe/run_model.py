@@ -8,16 +8,16 @@ sys.path.append("..")
 from BachelorThesisKen.hqe.src.mphrqe import similarity, loss
 from BachelorThesisKen.hqe.src.mphrqe.data import mapping
 
-
-from utility_methods import get_entity_type_ids, save_obj, load_obj, transfer_model_parameters, save_visualization_of_embeddings
+print("First imports done", flush=True)
+from utility_methods import get_entity_type_ids, save_obj, load_obj, transfer_model_parameters
 from mpqe_model import mpqe
 from training import train_for_epochs
 from evaluation import evaluate
-from config import aifb_entity_id_path, save_visualizations, save_results, get_new_dataloaders
+from config import aifb_entity_id_path, save_embeddings, save_results, get_new_dataloaders, tsne_seed
 from get_dataloaders import get_dataloaders
 
 ################################# Load Data #################################
-
+print("Loading data", flush=True)
 # Generate new dataloaders and samples if needed, else load new ones
 get_dataloaders() if get_new_dataloaders else None
 
@@ -43,7 +43,7 @@ embedding_dim = 128
 num_bases = None
 learning_rate = 0.0001
 
-training_epochs = 10
+training_epochs = 3
 
 entity_model_instance = mpqe(embedding_dim, num_relations, num_nodes, num_bases)
 #############################################################################
@@ -60,11 +60,12 @@ optimizer = torch.optim.Adam(entity_model_instance.parameters(), lr=learning_rat
 
 
 ################################ Training ###################################
+print("Saving visualization", flush=True)
+# Save embeddings and labels in a dictionary for visualization
+save_dict = {'node_embeddings':entity_model_instance.node_embeddings, 'labels':entity_type_ids}
+save_obj(save_dict, "entity_embeddings_before") if save_embeddings else None
 
-# Save visualization of embeddings before training
-save_visualization_of_embeddings(entity_model_instance.node_embeddings, entity_type_ids, 80, "entity_model_before_training") if save_visualizations else None
-
-print("Starting training")
+print("Starting training", flush=True)
 training_results = train_for_epochs(
     epochs=training_epochs,
     data_loader=loaders["train"],
@@ -75,8 +76,10 @@ training_results = train_for_epochs(
     optimizer_instance=optimizer,
     )
 
-# Save visualization of embeddings after training
-save_visualization_of_embeddings(entity_model_instance.node_embeddings, entity_type_ids, 80, "entity_model_after_training") if save_visualizations else None
+# Save embeddings and labels in a dictionary for visualization
+save_dict = {'node_embeddings':entity_model_instance.node_embeddings, 'labels':entity_type_ids}
+save_obj(save_dict, "entity_embeddings_after") if save_embeddings else None
+
 # Save results of training
 save_obj(training_results, "training_results") if save_results else None
 
@@ -148,10 +151,11 @@ combined_model_optimizer = torch.optim.Adam(combined_model_instance.parameters()
 
 ############################# Training on Types #############################
 
-save_visualization_of_embeddings(type_embedding_model_instance.node_embeddings, list(range(num_types)), 80, "type_model_before_training") if save_visualizations else None
+save_dict = {'node_embeddings':type_embedding_model_instance.node_embeddings, 'labels':list(range(num_types))}
+save_obj(save_dict, "type_embeddings_before") if save_embeddings else None
 
 training_results = train_for_epochs(
-    epochs=10,
+    epochs=100,
     data_loader=loaders["train"],
     model_instance=type_embedding_model_instance,
     evaluation_model_instance=evaluation_mpqe_model_instance,
@@ -160,19 +164,23 @@ training_results = train_for_epochs(
     optimizer_instance=type_model_optimizer,
     )
 
-save_visualization_of_embeddings(type_embedding_model_instance.node_embeddings, list(range(num_types)), 80, "type_model_after_training") if save_visualizations else None
+save_dict = {'node_embeddings':type_embedding_model_instance.node_embeddings, 'labels':list(range(num_types))}
+save_obj(save_dict, "type_embeddings_after") if save_embeddings else None
+
 #############################################################################
 
 
 ################### Transfer weights + Train on Entities ####################
-print("\nTransfering weights and starting training again")
+print("\nTransfering weights and starting training again", flush=True)
 
 # Transfering weights from mpqe that was trained on types
 transfer_model_parameters(
     from_model=type_embedding_model_instance, 
     to_model=combined_model_instance)
 
-save_visualization_of_embeddings(combined_model_instance.node_embeddings, entity_type_ids, 80, "combined_model_before_training") if save_visualizations else None
+
+save_dict = {'node_embeddings':combined_model_instance.node_embeddings, 'labels':entity_type_ids}
+save_obj(save_dict, "combined_embeddings_before") if save_embeddings else None
 
 combined_model_training_results = train_for_epochs(
     epochs=training_epochs,
@@ -184,7 +192,8 @@ combined_model_training_results = train_for_epochs(
     optimizer_instance=combined_model_optimizer,
     )
 
-save_visualization_of_embeddings(combined_model_instance.node_embeddings, entity_type_ids, 80, "combined_model_after_training") if save_visualizations else None
+save_dict = {'node_embeddings':combined_model_instance.node_embeddings, 'labels':entity_type_ids}
+save_obj(save_dict, "combined_embeddings_after") if save_embeddings else None
 
 save_obj(combined_model_training_results, "combined_model_training_results") if save_results else None
 #############################################################################

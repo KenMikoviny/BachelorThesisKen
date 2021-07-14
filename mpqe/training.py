@@ -123,13 +123,13 @@ def train_on_types_and_evaluate_on_entities(
     """
     Trains a model instance on types while outputing evaluation loss using an entity model instance
 
-    :param epochs: embeddings to visualize
-    :param data_loader: entity labels for coloring
-    :param model_instance: statistic to plot
-    :param evaluation_model_instance: x axis limit
-    :param loss_function: y axis limit
-    :param similarity_function: statistic to plot
-    :param optimizer_instance: x axis limit
+    :param epochs: number of training epochs
+    :param data_loader: data loader
+    :param model_instance: model instance that gets trained on type embeddings
+    :param evaluation_model_instance: model instance that gets used for evaluating on entity embeddings
+    :param loss_function: loss function
+    :param similarity_function: similarity function
+    :param optimizer_instance: optimizer instance
     """ 
 
     print("Training on type embeddings and evaluating on entity embeddings each epoch")
@@ -185,6 +185,17 @@ def train_for_epochs(
     similarity_function: similarity.Similarity,
     optimizer_instance: torch.optim.Optimizer,
 ):
+    """
+    Trains a model instance on types while outputing evaluation loss using an entity model instance
+
+    :param epochs: number of training epochs
+    :param data_loader: data loader
+    :param model_instance: model instance that gets trained on type embeddings
+    :param evaluation_model_instance: model instance that gets used for evaluating on entity embeddings
+    :param loss_function: loss function
+    :param similarity_function: similarity function
+    :param optimizer_instance: optimizer instance
+    """ 
     
     results_dict = {}
 
