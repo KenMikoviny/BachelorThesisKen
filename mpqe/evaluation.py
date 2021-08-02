@@ -1,9 +1,6 @@
 import torch
-import pprint
-
 from mphrqe import similarity, evaluation, loss
 from mphrqe.data.loader import QueryGraphBatch
-
 from mpqe_model import mpqe
 
 def evaluate(
@@ -12,6 +9,7 @@ def evaluate(
     loss_function: loss.QueryEmbeddingLoss,
     similarity_function: similarity.Similarity,
 ):
+    """ Return evaluation metrics on the test dataset using the specified model """
 
     model_instance.eval()
     evaluator = evaluation.RankingMetricAggregator()

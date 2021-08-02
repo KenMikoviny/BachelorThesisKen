@@ -1,10 +1,13 @@
 import torch
-from torch_geometric.nn import RGCNConv, FastRGCNConv
+from torch_geometric.nn import RGCNConv
 from torch_scatter import scatter
 
 from utility_methods import initialize_embeddings
 
+
 class mpqe(torch.nn.Module):
+    """ the mpqe model used in our experiments """
+
     def __init__(self, embedding_dim, num_relations, num_nodes, num_bases, entity_type_ids=None):
         super(mpqe, self).__init__()
         
