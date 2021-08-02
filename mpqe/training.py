@@ -1,23 +1,24 @@
+""" Code used for training the model """
 import torch
-import pprint
 import copy
 import sys
 sys.path.append("..")
-from BachelorThesisKen.hqe.src.mphrqe import similarity, evaluation, loss
-from BachelorThesisKen.hqe.src.mphrqe.data import mapping
-from BachelorThesisKen.hqe.src.mphrqe.data.loader import QueryGraphBatch
+from mphrqe import similarity, evaluation, loss
+from mphrqe.data import QueryGraphBatch, mapping
 
 from mpqe_model import mpqe
 from evaluation import evaluate
 from utility_methods import transfer_model_parameters, save_obj
 
 def train(
-    data_loader: torch.utils.data.DataLoader[QueryGraphBatch],
+    data_loaders: torch.utils.data.DataLoader[QueryGraphBatch],
     model: mpqe,
+    eval_model: mpqe,
     loss_function: loss.QueryEmbeddingLoss,
     similarity_function: similarity.Similarity,
     optimizer: torch.optim.Optimizer,
-    train_on_types:bool,
+    train_on_types: bool,
+    save_obj_name: str = None,
 ):
     """ A single training loop iteration, handles training on entities as well as training on types """
     model.train()
@@ -27,7 +28,7 @@ def train(
     # If the model trains on types instead of entities:
     if train_on_types:
         #For each batch of queries do:
-        for batch in data_loader:
+        for batch in data_loaders["train"]:
             # Zero out the gradients
             optimizer.zero_grad()
 
@@ -65,7 +66,7 @@ def train(
 
             # Compute loss based on scores
             loss = loss_function(scores, type_targets)
-            #print("\nloss:\n", loss)
+
             # Backpropagate & update weights
             loss.backward()
             optimizer.step()
@@ -74,14 +75,14 @@ def train(
             train_evaluator.process_scores_(scores=scores, targets=type_targets)
 
             return dict(
-                loss=epoch_loss.item() / len(data_loader),
+                loss=epoch_loss.item() / len(data_loaders["train"]),
                 **train_evaluator.finalize(),
             )
 
     # If the model trains on entities:
     else:
         #For each batch of queries do:
-        for batch in data_loader:
+        for batch in data_loaders["train"]:
 
             # Zero out the gradients
             optimizer.zero_grad()
@@ -105,15 +106,25 @@ def train(
             epoch_loss += loss.detach() * scores.shape[0]
             train_evaluator.process_scores_(scores=scores, targets=targets)
 
-        return dict(
-            loss=epoch_loss.item() / len(data_loader),
-            **train_evaluator.finalize(),
+        ## Evaluation
+        transfer_model_parameters(model, eval_model, True)
+        # Evaluate on entities with weights + parameters from the model that was trained on entities
+        eval_model_loss = evaluate(
+            data_loader=data_loaders["test"],
+            model_instance=eval_model,
+            loss_function=loss_function,
+            similarity_function=similarity_function,  
         )
+
+        return dict(
+            loss=epoch_loss.item() / len(data_loaders["train"]),
+            **train_evaluator.finalize(),
+        ), eval_model_loss
 
 # Training on type embeddings and evaluating on entities each epoch 
 def train_on_types_and_evaluate_on_entities(
     epochs: int,
-    data_loader: torch.utils.data.DataLoader[QueryGraphBatch],
+    data_loaders: torch.utils.data.DataLoader[QueryGraphBatch],
     model_instance: mpqe,
     evaluation_model_instance: mpqe,
     loss_function: loss.QueryEmbeddingLoss,
@@ -147,23 +158,24 @@ def train_on_types_and_evaluate_on_entities(
     results_dict = {}
     entity_results_dict = {}
 
-    for epoch in range(0, epochs):
+    for epoch in range(1, epochs + 1):
         type_loss = train(
-            data_loader = data_loader,
+            data_loaders = data_loaders,
             model = model_instance,
+            eval_model = evaluation_model_instance,
             loss_function = loss_function,
             similarity_function = similarity_function,
             optimizer = optimizer_instance,
             train_on_types=True
             )
-        #print(f'End of epoch: {epoch:03d}')
+
         results_dict[epoch] = type_loss
 
-        transfer_model_parameters(model_instance, evaluation_model_instance)
+        transfer_model_parameters(model_instance, evaluation_model_instance, False)
         
         # Evaluate on entities with weights + parameters from the model that was trained on entities
         entity_model_loss = evaluate(
-            data_loader=data_loader,
+            data_loader=data_loaders["test"],
             model_instance=evaluation_model_instance,
             loss_function=loss_function,
             similarity_function=similarity_function,  
@@ -178,32 +190,37 @@ def train_on_types_and_evaluate_on_entities(
 
 def train_for_epochs(
     epochs: int,
-    data_loader: torch.utils.data.DataLoader[QueryGraphBatch],
+    data_loaders: torch.utils.data.DataLoader[QueryGraphBatch],
     model_instance: mpqe,
     evaluation_model_instance: mpqe,
     loss_function: loss.QueryEmbeddingLoss,
     similarity_function: similarity.Similarity,
     optimizer_instance: torch.optim.Optimizer,
+    train_on_types: bool = False,
+    save_obj_name: str = None,
 ):
     """
     Trains a model instance on types while outputing evaluation loss using an entity model instance
 
     :param epochs: number of training epochs
-    :param data_loader: data loader
+    :param data_loaders: data loaders
     :param model_instance: model instance that gets trained on type embeddings
     :param evaluation_model_instance: model instance that gets used for evaluating on entity embeddings
     :param loss_function: loss function
     :param similarity_function: similarity function
     :param optimizer_instance: optimizer instance
+    :param save_obj_name: name of the saved object on disk
     """ 
     
-    results_dict = {}
+    results_dict_train = {}
+    results_dict_eval = {}
+
 
     # If the model trains on type embeddings + we have a entity evaluation model instance then: (see train_on_types_and_evaluate_on_entities())
-    if(evaluation_model_instance is not None):
+    if(evaluation_model_instance is not None and train_on_types):
         results_dict = train_on_types_and_evaluate_on_entities(
             epochs=epochs,
-            data_loader=data_loader,
+            data_loaders=data_loaders,
             model_instance=model_instance,
             evaluation_model_instance=evaluation_model_instance,
             loss_function=loss_function,
@@ -212,18 +229,27 @@ def train_for_epochs(
         )
 
     else:
-        for epoch in range(0, epochs): 
-            loss = train(
-                data_loader = data_loader,
+        for epoch in range(1, epochs + 1): 
+            train_loss, eval_loss = train(
+                data_loaders = data_loaders,
                 model = model_instance,
+                eval_model = evaluation_model_instance,
                 loss_function = loss_function,
                 similarity_function = similarity_function,
                 optimizer = optimizer_instance,
-                train_on_types=False
+                train_on_types=False,
+                save_obj_name=save_obj_name,
                 )
-            results_dict[epoch] = loss
-            print(f'Epoch: {epoch:03d}, Loss: {loss["loss"]:.5f}') 
+            results_dict_train[epoch] = train_loss
+            results_dict_eval[epoch] = eval_loss
+            if(epoch % 100 == 0):
+                save_obj(results_dict_train, str(save_obj_name) + "_train") if save_obj_name else None 
+                save_obj(results_dict_eval, str(save_obj_name) + "_eval") if save_obj_name else None 
+            if(epoch == 1000):
+                save_obj(results_dict_eval, str(save_obj_name) + "_1000") if save_obj_name else None 
 
-    return results_dict
+            print(f'Epoch: {epoch:03d}, Training loss: {train_loss["loss"]:.5f}, Evaluation loss: {eval_loss["loss"]:.5f}') 
+
+    return
 
 

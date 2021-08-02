@@ -1,5 +1,5 @@
 import pathlib
-
+""" Configuration related constants """
 
 root = pathlib.Path(__file__, "..", "..").resolve()
 mpqe_root = root.joinpath("mpqe")
@@ -12,6 +12,8 @@ am_entity_id_path = data_root.joinpath("triple_split_AM", "entity_id_typing.txt"
 mutag_entity_id_path = data_root.joinpath("triple_split_MUTAG", "entity_id_typing.txt")
 
 binary_queries_aifb_path = binary_queries_root.joinpath("binary_queries_AIFB")
+binary_queries_am_path = binary_queries_root.joinpath("binary_queries_AM")
+binary_queries_mutag_path = binary_queries_root.joinpath("binary_queries_MUTAG")
 
 get_new_dataloaders = True
 save_embeddings = True

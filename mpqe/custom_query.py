@@ -1,7 +1,6 @@
 
 import torch
-import numpy as np
-
+""" Custom query used for testing the mpqe logic during writing of the code """
 
 # Custom query description class (unprocessed query)
 class Query_desc:

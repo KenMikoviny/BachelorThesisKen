@@ -40,21 +40,6 @@ def get_entity_type_ids(file_path):
     return torch.tensor(entity_type_ids)
 
 
-# def select_embeddings_by_index(embeddings, indices):
-#     """
-#     Returns embeddings from all node embeddings chosen by global id
-
-#     :param indices: list of global ids
-
-#     :return: selected node embeddings, shape (len(indices, embedding_dim)
-#     """ 
-#     selected_embeddings = torch.empty(size=(len(indices),embedding_dim))
-#     for i in range(len(embeddings)):
-#         embeddings[i] = embeddings[indices[i]]
-
-#     return selected_embeddings
-
-
 def initialize_embeddings(num_nodes, emb_dim) -> nn.Parameter:
     """
     Used to randomly initialize embeddings before training is done, uses nn.init.xavier_normal_
@@ -78,27 +63,30 @@ def load_obj(name ):
     with open(str(config.saved_data_root) + '/' + name + '.pkl', 'rb') as f:
         return pickle.load(f)
 
-# TODO maybe find better name for this
 def transfer_model_parameters(
     from_model: torch.nn.Module, 
     to_model: torch.nn.Module, 
+    copy_node_embeddings: bool = True,
 ) -> torch.nn.Module:
     """ Transfer model parameters and node embeddings from a model trained on types to a model that trains on entities """ 
 
     # Save trained model 
     copied_state = copy.deepcopy(from_model.state_dict())
 
-    # Initialize empty node embeddings
-    entity_node_embeddings = torch.empty(to_model.node_embeddings.shape)
     
-    # Fill entity_node_embeddings with pretrained ones according to entity types
-    # shape goes from [num_unique_classes + 2, emb_dim] -> [num_entities + 2, emb_dim]
-    entity_node_embeddings = from_model.node_embeddings.index_select(0, from_model.entity_type_ids )
     
-    # Remove node embeddings from the saved model parameters
-    del copied_state['node_embeddings']
-    # Add the entity_node_embeddings to the dictionary before loading the weights
-    copied_state['node_embeddings'] = entity_node_embeddings
+    if(copy_node_embeddings is False):
+        # Initialize empty node embeddings
+        entity_node_embeddings = torch.empty(to_model.node_embeddings.shape)
+    
+        # Fill entity_node_embeddings with pretrained ones according to entity types
+        # shape goes from [num_unique_classes + 2, emb_dim] -> [num_entities + 2, emb_dim]
+        entity_node_embeddings = from_model.node_embeddings.index_select(0, from_model.entity_type_ids )
+        # Remove node embeddings from the saved model parameters
+        del copied_state['node_embeddings']
+        # Add the entity_node_embeddings to the dictionary before loading the weights
+        copied_state['node_embeddings'] = entity_node_embeddings
+
     to_model.load_state_dict(copied_state) 
     
 #####################################################################################  

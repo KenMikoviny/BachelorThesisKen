@@ -1,19 +1,14 @@
+""" Script used to run the experiments """
 import torch
-import torch.nn as nn
-import pprint
-import pathlib
 import sys
-import copy
 sys.path.append("..")
-from BachelorThesisKen.hqe.src.mphrqe import similarity, loss
-from BachelorThesisKen.hqe.src.mphrqe.data import mapping
+from mphrqe import similarity, loss
+from mphrqe.data import mapping
 
-print("First imports done", flush=True)
 from utility_methods import get_entity_type_ids, save_obj, load_obj, transfer_model_parameters
 from mpqe_model import mpqe
 from training import train_for_epochs
-from evaluation import evaluate
-from config import aifb_entity_id_path, save_embeddings, save_results, get_new_dataloaders, tsne_seed
+from config import aifb_entity_id_path, am_entity_id_path, mutag_entity_id_path, save_embeddings, get_new_dataloaders
 from get_dataloaders import get_dataloaders
 
 ################################# Load Data #################################
@@ -25,20 +20,20 @@ get_dataloaders() if get_new_dataloaders else None
 dataloaders = load_obj("dataloaders")
 loaders = dataloaders[0]
 
-# Get list of entity type id's by converting the string representation to an int, order corresponds to global ids
+# Get list of entity type id's by converting the string representation to an int, order corresponds to global ids, change this when working with different dataset
 entity_type_ids = get_entity_type_ids(aifb_entity_id_path)
+
 #############################################################################
 
 
 
 
 ############################## Model & parameters #############################
-# For AIFB:
-# 2601 total nodes (from entoid)
-# 19 total relations (reltoid)
 num_nodes = mapping.get_entity_mapper().highest_entity_index + 3 
-num_relations = mapping.get_relation_mapper().get_largest_forward_relation_id() - 2 
 
+print("num nodes: ", num_nodes)
+num_relations = mapping.get_relation_mapper().get_largest_forward_relation_id() - 2 
+print("num relationships: ", num_relations)
 embedding_dim = 128
 num_bases = None
 learning_rate = 0.0001
@@ -46,6 +41,7 @@ learning_rate = 0.0001
 training_epochs = 3
 
 entity_model_instance = mpqe(embedding_dim, num_relations, num_nodes, num_bases)
+eval_model_instance = mpqe(embedding_dim, num_relations, num_nodes, num_bases)
 #############################################################################
 
 
@@ -68,41 +64,18 @@ save_obj(save_dict, "entity_embeddings_before") if save_embeddings else None
 print("Starting training", flush=True)
 training_results = train_for_epochs(
     epochs=training_epochs,
-    data_loader=loaders["train"],
+    data_loaders=loaders,
     model_instance=entity_model_instance,
-    evaluation_model_instance=None,
+    evaluation_model_instance=eval_model_instance,
     loss_function=loss_function,
     similarity_function=similarity_function,
     optimizer_instance=optimizer,
+    save_obj_name="entity_model_results",
     )
 
 # Save embeddings and labels in a dictionary for visualization
 save_dict = {'node_embeddings':entity_model_instance.node_embeddings, 'labels':entity_type_ids}
 save_obj(save_dict, "entity_embeddings_after") if save_embeddings else None
-
-# Save results of training
-save_obj(training_results, "training_results") if save_results else None
-
-# Evaluation
-for loader in loaders:
-    if loader == "train":
-        continue
-
-    results = evaluate(
-    data_loader=loaders[loader],
-    model_instance=entity_model_instance,
-    loss_function=loss_function,
-    similarity_function=similarity_function,
-    )
-
-    if loader == "validation":
-        save_obj(results, "validation_results_entities")
-        print("\nValidation set results:\n")
-        pprint.pprint(results)
-    if loader == "test":
-        save_obj(results, "test_results_entities")
-        print("\nTest set results:\n")
-        pprint.pprint(results)
 #############################################################################
 
 
@@ -156,12 +129,13 @@ save_obj(save_dict, "type_embeddings_before") if save_embeddings else None
 
 training_results = train_for_epochs(
     epochs=100,
-    data_loader=loaders["train"],
+    data_loaders=loaders,
     model_instance=type_embedding_model_instance,
     evaluation_model_instance=evaluation_mpqe_model_instance,
     loss_function=loss_function,
     similarity_function=similarity_function,
     optimizer_instance=type_model_optimizer,
+    train_on_types=True,
     )
 
 save_dict = {'node_embeddings':type_embedding_model_instance.node_embeddings, 'labels':list(range(num_types))}
@@ -176,24 +150,26 @@ print("\nTransfering weights and starting training again", flush=True)
 # Transfering weights from mpqe that was trained on types
 transfer_model_parameters(
     from_model=type_embedding_model_instance, 
-    to_model=combined_model_instance)
+    to_model=combined_model_instance,
+    copy_node_embeddings=False)
 
+# Re-initializing a evaluation model instance just in case
+eval_model_instance = mpqe(embedding_dim, num_relations, num_nodes, num_bases)
 
 save_dict = {'node_embeddings':combined_model_instance.node_embeddings, 'labels':entity_type_ids}
 save_obj(save_dict, "combined_embeddings_before") if save_embeddings else None
 
 combined_model_training_results = train_for_epochs(
     epochs=training_epochs,
-    data_loader=loaders["train"],
+    data_loaders=loaders,
     model_instance=combined_model_instance,
-    evaluation_model_instance=None,
+    evaluation_model_instance=eval_model_instance,
     loss_function=loss_function,
     similarity_function=similarity_function,
     optimizer_instance=combined_model_optimizer,
+    save_obj_name="combined_model_training_results",
     )
 
 save_dict = {'node_embeddings':combined_model_instance.node_embeddings, 'labels':entity_type_ids}
 save_obj(save_dict, "combined_embeddings_after") if save_embeddings else None
-
-save_obj(combined_model_training_results, "combined_model_training_results") if save_results else None
 #############################################################################
