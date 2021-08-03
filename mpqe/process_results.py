@@ -23,7 +23,7 @@ combined_model_training_results = load_obj("combined_model_training_results_1000
 combined_model_training_results2 = load_obj("combined_model_training_results_1000_2")
 combined_model_training_results3 = load_obj("combined_model_training_results_1000_3")
 transfered_entity_results = load_obj("transfered_entity_results_dict")
-epoch_list = training_results.keys()
+epoch_list = combined_model_training_results.keys()
 
 
 def generate_figure(epochs, type_training_epochs, name_on_figure, dict_key_name, xlim = None, ylim = None):
@@ -46,7 +46,6 @@ def generate_figure(epochs, type_training_epochs, name_on_figure, dict_key_name,
         mean_values_type.append(mean([combined_model_training_results[key][dict_key_name], combined_model_training_results2[key][dict_key_name], combined_model_training_results3[key][dict_key_name]]))
         stdev_values_type.append(np.std([combined_model_training_results[key][dict_key_name], combined_model_training_results2[key][dict_key_name], combined_model_training_results3[key][dict_key_name]]))
 
-
     fig = plt.figure(tight_layout=True,figsize=(8,8))
 
     plt.plot(epoch_list, mean_values_entity, label = "Entity MPQE Model", color='red')
@@ -56,7 +55,7 @@ def generate_figure(epochs, type_training_epochs, name_on_figure, dict_key_name,
     plt.fill_between(epoch_list,list(np.array(mean_values_type)-np.array(stdev_values_type)),list(np.array(mean_values_type)+np.array(stdev_values_type)),alpha=1)
     plt.xlim(xlim)
     plt.ylim(ylim)
-    #plt.text(670, -0.4, 'Entity MPQE ' + r'$\sigma$' + ' = ' + str(np.std(data_entity_model))[0:5] + '\n' + 'Combined MPQE ' + r'$\sigma$' + ' = ' + str(np.std(data_type_model))[0:5], fontsize=10)
+
     plt.xlabel('Epochs')
     plt.ylabel(dict_key_name)
     plt.title(name_on_figure + '\n (' + str(type_training_epochs) + ' epochs of training on types before weight transfer)') 
@@ -164,7 +163,7 @@ def generate_figures():
         type_training_epochs=100,
         name_on_figure="Average mean rank over 1000 epochs of training on entities",
         dict_key_name="avg.mean_rank",
-        xlim=[0,600],
+        xlim=[0,1000],
         ylim=None,
     )
 
